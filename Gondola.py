@@ -1,22 +1,25 @@
 import os
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-import streamlit as st  
+import streamlit as st
 import tensorflow as tf
 from PIL import Image
 import numpy as np
 
-# hide deprication warnings which directly don't affect the working of the application
+# Hide deprecation warnings which directly don't affect the working of the application
 import warnings
 warnings.filterwarnings("ignore")
 
-# set some pre-defined configurations for the page, such as the page title, logo-icon, page loading state (whether the page is loaded automatically or you need to perform some action for loading)
+# Path to the icon image
+icon_path = "LWC.png"
+
+# Set some pre-defined configurations for the page
 st.set_page_config(
-    page_title="Reconocimiento de Flores",
-    page_icon=":smile:",
+    page_title="Reconocimiento de Productos de Góndola",
+    page_icon=icon_path,
     initial_sidebar_state='auto'
 )
 
-# hide the part of the code, as this is just for adding some custom CSS styling but not a part of the main idea 
+# Custom CSS styling
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
@@ -32,55 +35,65 @@ def load_model():
     model = tf.keras.models.load_model('./Gondola_model.h5')
     return model
 
-with st.spinner('Modelo está cargando..'):
+with st.spinner('Modelo está cargando...'):
     model = load_model()
 
+# Sidebar content
 with st.sidebar:
     st.image('LWC.png')
     st.title("Bienvenido a UNAB IA: Reconocimiento de Objetos de Góndola")
     st.subheader("Reconocimiento de imágenes para productos de góndola")
+    satisfaction = st.slider("¿Qué tan satisfecho estás con la aplicación?", 0, 100, 50)
+    st.write(f"Nivel de satisfacción: {satisfaction}%")
 
-st.image('LWC.png')
 st.markdown("<h1 style='text-align: center;'>UNAB IA</h1>", unsafe_allow_html=True)
 
-# Texto centrado con partes en negrita
+# Set the background image
+st.markdown("""
+    <style>
+    body {
+        background-image: url("https://www.unired.edu.co/images/instituciones/UNAB/2017/junio/unab.jpg");
+        background-size: cover;
+        background-position: center;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Centered text with bold parts
 html_text = """
-<div style="text-align: center;">
+<div style="text-align: center; color: white;">
     Nuestra aplicación utiliza tecnología avanzada de inteligencia artificial para <b>identificar y catalogar productos en góndolas</b> de manera rápida y precisa.
     Simplifica la gestión de inventarios y mejora la experiencia de compra con nuestra innovadora herramienta de reconocimiento visual.
     ¡Descubre una nueva forma de optimizar tu negocio con UNAB IA!
 </div>
 """
-
 st.markdown(html_text, unsafe_allow_html=True)
 
-st.write("""
-         # Detección de productos
-         """)
+st.write("## Detección de productos")
 
 def import_and_predict(image_data, model, class_names):
     image_data = image_data.resize((180, 180))
     image = tf.keras.utils.img_to_array(image_data)
-    image = tf.expand_dims(image, 0) # Create a batch
+    image = tf.expand_dims(image, 0)  # Create a batch
 
     prediction = model.predict(image)
     index = np.argmax(prediction)
     score = tf.nn.softmax(prediction[0])
     class_name = class_names[index]
-    
+
     return class_name, score
 
 class_names = open("./clases.txt", "r").readlines()
 
-st.write("Suba una foto o tome una nueva para identificar un producto")
+st.write("## Suba una foto o tome una nueva para identificar un producto")
 
-# Opciones de carga de imágenes
+# Options for image upload or capture
 img_file_buffer = st.file_uploader("Subir una imagen", type=["jpg", "jpeg", "png"])
 img_camera = st.camera_input("O tome una foto")
 
-image = None  # Inicializa la variable image
+image = None  # Initialize the image variable
 
-# Determinar cuál entrada usar
+# Determine which input to use
 if img_file_buffer is not None:
     image = Image.open(img_file_buffer)
 elif img_camera is not None:
@@ -89,10 +102,10 @@ elif img_camera is not None:
 if image is not None:
     st.image(image, use_column_width=True)
     
-    # Realizar la predicción
+    # Perform prediction
     class_name, score = import_and_predict(image, model, class_names)
     
-    # Mostrar el resultado
+    # Display result
     if np.max(score) > 0.5:
         st.subheader(f"Tipo de producto: {class_name}")
         st.text(f"Puntuación de confianza: {100 * np.max(score):.2f}%")
@@ -100,3 +113,4 @@ if image is not None:
         st.text("No se pudo determinar el tipo de producto")
 else:
     st.text("Por favor, suba una imagen o tome una foto.")
+
